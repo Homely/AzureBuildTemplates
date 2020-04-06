@@ -1,0 +1,49 @@
+steps:
+
+  # Install any tools needed.
+  # NOTE: we do this AFTER the build because why bother installing if the build fails?
+
+  # Install coverlet tool to produce opencover test cover reports
+  - script: dotnet tool install --tool-path $(Agent.BuildDirectory)/tools coverlet.console
+    displayName: 'install coverlet.console'
+  
+  # Install codecov tool to send test cover reports to codecov.io
+  - script: dotnet tool install --tool-path $(Agent.BuildDirectory)/tools Codecov.Tool
+    displayName: 'install codecov.tool'
+    condition: eq(variables['BuildConfiguration'], 'Debug')
+
+  # Add tools folder to path
+  - script: echo "##vso[task.setvariable variable=PATH]${PATH}:$(Agent.BuildDirectory)/tools"
+    displayName: 'set path'
+    condition: eq(variables['BuildConfiguration'], 'Debug')
+
+  # Run tests (Debug only)
+  - script: |
+      cd "$(Build.SourcesDirectory)/tests/Homely.Sitemaps.IntegrationTests"
+      coverlet $(outputDirPath)/Homely.Sitemaps.IntegrationTests.dll -f "opencover" -t "dotnet" -a "test Homely.Sitemaps.IntegrationTests.csproj -l trx -r $(Agent.TempDirectory) -c $(buildConfiguration) --no-build"
+    displayName: 'dotnet test/coverlet - Homely.Sitemaps.IntegrationTests'
+    condition: eq(variables['BuildConfiguration'], 'Debug')
+
+  - script: |
+      cd "$(Build.SourcesDirectory)/tests/Homely.Sitemaps.UnitTests"
+      coverlet $(outputDirPath)/Homely.Sitemaps.UnitTests.dll -f "opencover" -t "dotnet" -a "test Homely.Sitemaps.UnitTests.csproj -l trx -r $(Agent.TempDirectory) -c $(buildConfiguration) --no-build"
+    displayName: 'dotnet test/coverlet - Homely.Sitemaps.UnitTests'
+    condition: eq(variables['BuildConfiguration'], 'Debug')
+
+  # Send coverage reports
+  - script: codecov -f "$(Build.SourcesDirectory)/tests/Homely.Sitemaps.IntegrationTests/coverage.opencover.xml" -t $(CODECOV_TOKEN) --required
+    displayName: 'Upload report to codecov.io for Homely.Sitemaps.IntegrationTests'
+    condition: eq(variables['BuildConfiguration'], 'Debug')
+
+  - script: codecov -f "$(Build.SourcesDirectory)/tests/Homely.Sitemaps.UnitTests/coverage.opencover.xml" -t $(CODECOV_TOKEN) --required
+    displayName: 'Upload report to codecov.io for Homely.Sitemaps.UnitTests'
+    condition: eq(variables['BuildConfiguration'], 'Debug')
+
+
+  # Publish test results to Azure Pipelines
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'VSTest'
+      testResultsFiles: '$(Agent.TempDirectory)/*.trx'
+    displayName: 'Publish test results'
+    condition: eq(variables['BuildConfiguration'], 'Debug')

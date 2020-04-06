@@ -1,0 +1,16 @@
+steps:
+  - task: DotNetCoreCLI@2
+    displayName: Restore packages [dotnet restore]
+    inputs:
+      command: restore
+      projects: $(projectSolution)
+      verbosityRestore: minimal
+      testRunTitle: $(Agent.JobName)
+
+  - task: DotNetCoreCLI@2
+    displayName: Build source [dotnet build $(buildConfiguration)]
+    inputs:
+      command: build
+      projects: $(projectSolution)
+      arguments: --configuration $(BuildConfiguration) --no-restore  -p:Version=$(Build.BuildNumber) -p:langversion=latest
+      testRunTitle: $(Agent.JobName)

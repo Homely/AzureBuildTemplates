@@ -1,0 +1,15 @@
+steps:
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: publish
+      publishWebProjects: false
+      arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build'
+      zipAfterPublish: true
+      workingDirectory: 'src/Homely.Sitemaps.AzureFunctions'
+    displayName: 'Publish Azure Function to a folder [dotnet publish]'
+    condition: eq(variables['BuildConfiguration'], 'Release')
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Upload published Azure function to Azure DevOps "artifacts" storage'
+    condition: eq(variables['BuildConfiguration'], 'Release')  
