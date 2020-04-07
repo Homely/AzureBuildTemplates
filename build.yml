@@ -4,7 +4,7 @@ steps:
     inputs:
       command: restore
       projects: $(projectSolution)
-      verbosityRestore: minimal
+      verbosityRestore: normal
       testRunTitle: $(Agent.JobName)
 
   - task: DotNetCoreCLI@2
